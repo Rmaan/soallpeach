@@ -80,7 +80,7 @@ func readInput() error {
 		if err != nil {
 			return fmt.Errorf("create file: %w", err)
 		}
-		//defer out.Close()
+		defer out.Close()
 	}
 	writer := bufio.NewWriter(out)
 	defer writer.Flush()
@@ -131,9 +131,9 @@ func main() {
 	}
 
 	err := readInput()
-	duration = time.Since(start)
 	if err != nil {
 		log.Fatalf("Fatal: %v", err)
 	}
+	duration = time.Since(start)
 	log.Printf("Done %v", duration)
 }
