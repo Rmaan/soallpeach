@@ -47,7 +47,7 @@ func isPrime(x int) bool {
 	if x > LargestCachedNumber*LargestCachedNumber {
 		panic(fmt.Sprintf("Too big for me bro! I only support up to %v", LargestCachedNumber*LargestCachedNumber))
 	}
-	// Iterate on prime numbers up to sqrt(x)
+	//Iterate on prime numbers up to sqrt(x)
 	for _, prime := range primes {
 		prime := int(prime)
 		if prime*prime > x {
@@ -64,6 +64,7 @@ func readInput() error {
 	var err error
 
 	// IO by far is the biggest bottleneck of this program. Golang doesn't buffer anything by default.
+	const bufferSize = 1000000 // It seems Docker IO is bad!
 	in := os.Stdin
 	if len(os.Args) > 1 {
 		in, err = os.Open(os.Args[1])
@@ -72,7 +73,7 @@ func readInput() error {
 		}
 		defer in.Close()
 	}
-	reader := bufio.NewReader(in)
+	reader := bufio.NewReaderSize(in, bufferSize)
 
 	out := os.Stdout
 	if len(os.Args) > 2 {
@@ -82,8 +83,11 @@ func readInput() error {
 		}
 		defer out.Close()
 	}
-	writer := bufio.NewWriter(out)
+	writer := bufio.NewWriterSize(out, bufferSize)
 	defer writer.Flush()
+
+	oneAndNewLine := []byte("1\n")
+	zeroAndNewLine := []byte("0\n")
 
 	for {
 		line, err := reader.ReadString('\n')
@@ -106,9 +110,9 @@ func readInput() error {
 			return fmt.Errorf("non-integer value provided: %v, %w", line, err)
 		}
 
-		result := []byte("0\n")
+		result := zeroAndNewLine
 		if isPrime(number) {
-			result = []byte("1\n")
+			result = oneAndNewLine
 		}
 
 		_, err = writer.Write(result)
