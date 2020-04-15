@@ -10,7 +10,7 @@ run-docker:
 	rm -rf data/
 	mkdir data/
 	cp input.txt data/in.txt
-	time docker run --rm -v "$(realpath data):/data" prime /data/in.txt /data/out.txt > output.txt
+	time docker run --rm -v "$(realpath data):/data" --entrypoint= prime sh -c '/prime /data/in.txt > /data/out.txt'
 	if [[ ! -s output.txt && -s data/out.txt ]]; then mv data/out.txt output.txt; fi
 
 diff:
