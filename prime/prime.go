@@ -10,13 +10,13 @@ import (
 	"time"
 )
 
-const LargestCachedNumber = 1 << 16
+const LargestCachedNumber = 1 << 17
 
 // If n'th bit is off, n is a prime number.
 // This array is 1-based in a sense that bitmap[1] shows 1 is prime or not
 // It's a bitmap just for fun, I don't think it adds a lot of value/performance.
 var bitmap [LargestCachedNumber/8 + 2]byte
-var primes = make([]uint16, 0, 10000)
+var primes = make([]int32, 0, 10000)
 
 func fillCache() {
 	setNotPrime(0)
@@ -25,7 +25,7 @@ func fillCache() {
 		if !isPrimeCached(i) {
 			continue
 		}
-		primes = append(primes, uint16(i))
+		primes = append(primes, int32(i))
 		for j := 2 * i; j <= LargestCachedNumber; j += i {
 			setNotPrime(j)
 		}
@@ -44,16 +44,16 @@ func isPrime(x int) bool {
 	if x <= LargestCachedNumber {
 		return isPrimeCached(x)
 	}
-	if x > LargestCachedNumber * LargestCachedNumber {
-		panic("Too big for me bro! I only support up to 2**32")
+	if x > LargestCachedNumber*LargestCachedNumber {
+		panic(fmt.Sprintf("Too big for me bro! I only support up to %v", LargestCachedNumber*LargestCachedNumber))
 	}
 	// Iterate on prime numbers up to sqrt(x)
 	for _, prime := range primes {
 		prime := int(prime)
-		if prime * prime > x {
+		if prime*prime > x {
 			break
 		}
-		if x % prime == 0 {
+		if x%prime == 0 {
 			return false
 		}
 	}
@@ -99,7 +99,7 @@ func readInput() error {
 		if err != nil {
 			return fmt.Errorf("read string: %w", err)
 		}
-		line = line[:len(line) - 1]
+		line = line[:len(line)-1]
 
 		number, err := strconv.Atoi(line)
 		if err != nil {
