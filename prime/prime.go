@@ -85,11 +85,12 @@ func readInput() error {
 		}
 		defer out.Close()
 	}
-	writer := bufio.NewWriterSize(out, bufferSize)
-	defer writer.Flush()
 
-	oneAndNewLine := []byte("1\n")
-	zeroAndNewLine := []byte("0\n")
+	// We use a hand written version of bufio.Writer to reduce overhead.
+	writeBuf := make([]byte, 0, bufferSize)
+	defer func() {
+		_, _ = out.Write(writeBuf)
+	}()
 
 	for {
 		// We can use scanner or ReadyByte here but they will eventually allocate a string
@@ -110,14 +111,15 @@ func readInput() error {
 			number = number * 10 + int(singleByte) - '0'
 		}
 
-		result := zeroAndNewLine
 		if isPrime(number) {
-			result = oneAndNewLine
+			writeBuf = append(writeBuf, '1', '\n')
+		} else {
+			writeBuf = append(writeBuf, '0', '\n')
 		}
 
-		_, err = writer.Write(result)
-		if err != nil {
-			return fmt.Errorf("fprintln: %w", err)
+		if len(writeBuf) + 2 >= bufferSize {
+			_, _ = out.Write(writeBuf)
+			writeBuf = writeBuf[:0]
 		}
 	}
 }
