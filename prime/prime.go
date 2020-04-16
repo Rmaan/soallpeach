@@ -125,20 +125,25 @@ func readInput() error {
 var cpuprofile = flag.String("cpuprofile", "", "")
 
 func main() {
+	start := time.Now()
+
 	flag.Parse()
 	os.Args = append([]string{os.Args[0]}, flag.Args()...)
 
 	if *cpuprofile != "" {
-		runtime.SetCPUProfileRate(10000)
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
 			log.Fatal(err)
 		}
-		pprof.StartCPUProfile(f)
+
+		runtime.SetCPUProfileRate(5000)
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			log.Fatalf("profile failed: %v", err)
+		}
 		defer pprof.StopCPUProfile()
 	}
 
-	start := time.Now()
 	fillCache()
 	duration := time.Since(start)
 	log.Printf("%v primes found in %v", len(primes), duration)
