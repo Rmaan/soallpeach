@@ -2,11 +2,13 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
-	"strconv"
+	"runtime"
+	"runtime/pprof"
 	"time"
 )
 
@@ -90,24 +92,22 @@ func readInput() error {
 	zeroAndNewLine := []byte("0\n")
 
 	for {
-		line, err := reader.ReadString('\n')
-		if err == io.EOF {
-			if line == "" {
+		// We can use scanner or ReadyByte here but they will eventually allocate a string
+		// and become our bottleneck
+		number := 0
+		for {
+			singleByte, err := reader.ReadByte()
+			if err == io.EOF {
+				if number == 0 {
+					return nil
+				}
 				break
 			}
-			// Seems input doesn't have a new line at end of file 🤷‍♂️
-			// Simulate an extra \n
-			err = nil
-			line = line + "\n"
-		}
-		if err != nil {
-			return fmt.Errorf("read string: %w", err)
-		}
-		line = line[:len(line)-1]
-
-		number, err := strconv.Atoi(line)
-		if err != nil {
-			return fmt.Errorf("non-integer value provided: %v, %w", line, err)
+			if singleByte == '\n' {
+				break
+			}
+			// Budget string to int conversion
+			number = number * 10 + int(singleByte) - '0'
 		}
 
 		result := zeroAndNewLine
@@ -120,10 +120,24 @@ func readInput() error {
 			return fmt.Errorf("fprintln: %w", err)
 		}
 	}
-	return nil
 }
 
+var cpuprofile = flag.String("cpuprofile", "", "")
+
 func main() {
+	flag.Parse()
+	os.Args = append([]string{os.Args[0]}, flag.Args()...)
+
+	if *cpuprofile != "" {
+		runtime.SetCPUProfileRate(10000)
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	start := time.Now()
 	fillCache()
 	duration := time.Since(start)
