@@ -65,7 +65,7 @@ func readInput() error {
 	var err error
 
 	// IO by far is the biggest bottleneck of this program. Golang doesn't buffer anything by default.
-	const bufferSize = 1000000 // It seems Docker IO is bad!
+	const bufferSize = 1 << 14
 	in := os.Stdin
 	if len(os.Args) > 1 {
 		in, err = os.Open(os.Args[1])
