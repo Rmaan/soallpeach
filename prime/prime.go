@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -49,7 +48,7 @@ func isPrime(x int) bool {
 	if x > LargestCachedNumber*LargestCachedNumber {
 		panic(fmt.Sprintf("Too big for me bro! I only support up to %v", LargestCachedNumber*LargestCachedNumber))
 	}
-	//Iterate on prime numbers up to sqrt(x)
+	// Iterate on prime numbers up to sqrt(x)
 	for _, prime := range primes {
 		prime := int(prime)
 		if prime*prime > x {
@@ -75,7 +74,6 @@ func readInput() error {
 		}
 		defer in.Close()
 	}
-	reader := bufio.NewReaderSize(in, bufferSize)
 
 	out := os.Stdout
 	if len(os.Args) > 2 {
@@ -86,24 +84,48 @@ func readInput() error {
 		defer out.Close()
 	}
 
-	// We use a hand written version of bufio.Writer to reduce overhead.
+	// We use a hand written version of bufio.Writer to reduce overhead. Mainly memory copying.
 	writeBuf := make([]byte, 0, bufferSize)
 	defer func() {
 		_, _ = out.Write(writeBuf)
 	}()
+
+	// Also a hand written version for reader. There was no big bottleneck in profiler, this reader
+	// was the biggest.
+	readBuf := make([]byte, 0, bufferSize)
+	readCursor := 0
 
 	for {
 		// We can use scanner or ReadyByte here but they will eventually allocate a string
 		// and become our bottleneck
 		number := 0
 		for {
-			singleByte, err := reader.ReadByte()
-			if err == io.EOF {
-				if number == 0 {
-					return nil
+			if readCursor >= len(readBuf) {
+				n, err := in.Read(readBuf[:cap(readBuf)])
+				if err == io.EOF {
+					// n should be zero by definition of file.Read
+					if n != 0 {
+						panic("n != 0")
+					}
+					if number == 0 {
+						return nil
+					}
+					break
 				}
-				break
+				if err != nil {
+					return fmt.Errorf("read error: %w", err)
+				}
+				if n == 0 {
+					// Theoretically this can happen but I think not possible on Unix,
+					// correct implementation would be looping until we read something.
+					panic("n == 0!")
+				}
+				readBuf = readBuf[:n]
+				readCursor = 0
 			}
+			singleByte := readBuf[readCursor]
+			readCursor++
+
 			if singleByte == '\n' {
 				break
 			}
