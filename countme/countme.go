@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync/atomic"
 )
 
@@ -20,11 +21,16 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	n, err := r.Body.Read(buf[:])
 	if err != io.EOF {
 		log.Printf("non EOF from body read: %v", err)
+		w.WriteHeader(500)
+		return
 	}
 
-	count, err := strconv.Atoi(string(buf[:n]))
+	s := string(buf[:n])
+	s = strings.TrimSpace(s)
+	count, err := strconv.Atoi(s)
 	if err != nil {
-		http.Error(w, "not an int", 400)
+		log.Printf("Error parsing int: %v", err)
+		http.Error(w, "Not an int", 400)
 		return
 	}
 
