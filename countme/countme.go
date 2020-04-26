@@ -1,12 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
+	"sync"
 	"sync/atomic"
 )
 
@@ -16,8 +17,17 @@ const bufferLength = 32
 // normal integer.
 var counter = new(int64)
 
+var bufPool = sync.Pool{New: newBuf}
+type bufType [bufferLength]byte
+
+func newBuf() interface{} {
+	return bufType{}
+}
+
 func addHandler(w http.ResponseWriter, r *http.Request) {
-	buf := [bufferLength]byte{}
+	buf := bufPool.Get().(bufType)
+	defer bufPool.Put(buf)
+
 	n, err := r.Body.Read(buf[:])
 	if err != io.EOF {
 		log.Printf("non EOF from body read: %v", err)
@@ -25,9 +35,10 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s := string(buf[:n])
-	s = strings.TrimSpace(s)
-	count, err := strconv.Atoi(s)
+	if n > 0 && buf[n-1] == '\n' {
+		n--
+	}
+	count, err := strconv.Atoi(string(buf[:n]))
 	if err != nil {
 		log.Printf("Error parsing int: %v", err)
 		http.Error(w, "Not an int", 400)
@@ -40,8 +51,7 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 func countHandler(w http.ResponseWriter, r *http.Request) {
 	total := atomic.LoadInt64(counter)
 
-	s := strconv.FormatInt(total, 10)
-	_, err := w.Write([]byte(s))
+	_, err := fmt.Fprintf(w, "%d", total)
 	if err != nil {
 		log.Printf("err in write %v", err)
 		return
