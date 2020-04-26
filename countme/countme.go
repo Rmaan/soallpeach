@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"sync"
 	"sync/atomic"
 )
@@ -38,11 +37,9 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	if n > 0 && buf[n-1] == '\n' {
 		n--
 	}
-	count, err := strconv.Atoi(string(buf[:n]))
-	if err != nil {
-		log.Printf("Error parsing int: %v", err)
-		http.Error(w, "Not an int", 400)
-		return
+	count := 0
+	for i := 0; i < n; i++ {
+		count = count * 10 + int(buf[i] - '0')
 	}
 
 	atomic.AddInt64(counter, int64(count))
