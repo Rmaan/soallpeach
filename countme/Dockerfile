@@ -1,6 +1,8 @@
 FROM golang AS build
 WORKDIR /
-COPY countme.go .
+COPY go.mod go.sum ./
+RUN go mod download
+COPY countme.go ./
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o countme countme.go
 
 # We need a shell so use alpine.
